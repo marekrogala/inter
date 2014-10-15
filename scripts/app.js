@@ -24,11 +24,12 @@ var keys = {
 }
 
 
+var globalState = {stopped: true}
 var state = {}
 
 var currentConfig;
 var bulbsConfiguration = function(){
-  var p = currentPattern;
+  var p = globalState.currentPattern;
   var result = {};
   for(var i = 1; i <= config.number_of_keys; i++){
     result[i] = p % 2;
@@ -101,12 +102,22 @@ var endInvalidInput = function(time) {
 }
 
 var displayResults = function () {
-  logEvent({name: "Displaying results."});
+  if (!globalState.stopped) {
+    logEvent({name: "Displaying results."});
 
-  for(i in state.pressed_valid) turnCorrect(state.pressed_valid[i]);
-  for(i in state.pressed_invalid) turnWrong(state.pressed_invalid[i]);
+    for(i in state.pressed_valid) turnCorrect(state.pressed_valid[i]);
+    for(i in state.pressed_invalid) turnWrong(state.pressed_invalid[i]);
 
-  setTimeout(runOneIterationOfExperiment, config.TIME_DISPLAY_RESULTS);
+    logEvent({
+      name: "result",
+      pattern: globalState.currentPattern,
+      patternId: globalState.currentPatternId,
+      displayedToFirstKeyDelta: state.pressing_started_at - state.started_at,
+      firstToInvalidKeyDelta: state.pressing_invalid_started_at - state.pressing_started_at,})
+
+    globalState.currentPatternId++;
+    setTimeout(runOneIterationOfExperiment, config.TIME_DISPLAY_RESULTS);
+  }
 }
 
 var recordValid = function (key) {
@@ -205,8 +216,7 @@ for(var j = 1; j < patterns_count; j++) {
 }
 shuffle(patterns); // Fixed order because of fixed seed.
 
-var currentPatternId = -1;
-var currentPattern;
+globalState.currentPatternId = 0;
 
 var timeouts = [1.5, 1.65, 1.8, 1.95]
 var randomTimeoutBeforeDisplay = function () {
@@ -215,24 +225,36 @@ var randomTimeoutBeforeDisplay = function () {
 }
 
 var runOneIterationOfExperiment = function () {
-  turnOffAll();
-  displayBulbs({});
-  currentPatternId++;
-  currentPattern = patterns[currentPatternId];
-  currentConfig = bulbsConfiguration();
-  if (currentPattern) {
-    var timeout = randomTimeoutBeforeDisplay();
-    logEvent({name: "Initializing one iteration of experiment.", timeout: timeout})
-    setTimeout(restartConfiguration, timeout);
-  } else {
-    console.log("All patterns finished.");
-    logEvent({name: "All patterns finished."})
+  if (!globalState.stopped) {
+    turnOffAll();
+    displayBulbs({});
+    globalState.currentPattern = patterns[globalState.currentPatternId];
+    currentConfig = bulbsConfiguration();
+    if (globalState.currentPattern) {
+      var timeout = randomTimeoutBeforeDisplay();
+      logEvent({name: "Initializing one iteration of experiment.", timeout: timeout})
+      setTimeout(restartConfiguration, timeout);
+    } else {
+      console.log("All patterns finished.");
+      logEvent({name: "All patterns finished."})
+    }
   }
 }
 
+var stop = function () {
+  globalState.stopped = true;
+  turnOffAll();
+}
 
+var start = function () {
+  logEvent({
+    name: "Experiment started.",
+    config: config
+    })
 
-
+  globalState.stopped = false;
+  runOneIterationOfExperiment();
+}
 
 
 
@@ -285,15 +307,27 @@ var displayBulbs = function (bulbs) {
 }
 
 $(function() {
-  $("#start-btn").click( function() {
+  $("#start-btn, #continue-btn").click( function() {
       logEvent({name: "Start button clicked."})
-      $("#intro").fadeOut(600, function () {
-        $("#main-experiment").fadeIn(600, function () {
-          logEvent({
-            name: "Experiment started.",
-            config: config
-            })
-          runOneIterationOfExperiment();
+
+      $("#intro").fadeOut(500, function () {
+        $("#main-experiment, #stop-btn").fadeIn(500, function () {
+          start();
+        });
+      });
+    }
+  );
+
+
+  $("#stop-btn").click( function() {
+      logEvent({name: "Stop button clicked."})
+      stop();
+
+      $("#main-experiment, #stop-btn").fadeOut(300, function () {
+        $("#msg_intro").hide();
+        $("#msg_outro").show();
+
+        $("#intro").fadeIn(300, function () {
         });
       });
     }
