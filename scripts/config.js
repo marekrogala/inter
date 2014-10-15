@@ -1,6 +1,6 @@
 config = {}
 config.number_of_pattern_repetitions = 1;
-config.number_of_keys = 5;
+config.number_of_keys = 10;
 
 
 config.TIME_VALID_INPUT = 500;
