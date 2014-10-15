@@ -24,7 +24,13 @@ var keys = {
 }
 
 
-var globalState = {stopped: true}
+var globalState = localStorage.getItem("experimentState");
+if (globalState) {
+  globalState = JSON.parse(globalState);
+} else {
+  globalState = {stopped: true, events: [], currentPatternId: 0};
+}
+
 var state = {}
 
 var currentConfig;
@@ -50,7 +56,9 @@ var logLine = function(line){
 var logEvent = function(evnt){
   evnt.absolute_time = now();
   evnt.current_state = state;
+  globalState.events.push(evnt);
   console.log(JSON.stringify(evnt));
+  localStorage.setItem("experimentState", JSON.stringify(globalState));
 }
 
 var bulbsToString = function(bulbs){
@@ -140,7 +148,7 @@ var recordMaybeValid = function (key, dir) {
 
 var recordIfInvalid = function (key, dir) {
     if(dir == "DOWN") {
-      if(!currentPattern[key]) {
+      if(!globalState.currentPattern[key]) {
         recordInvalid(key);
       }
     }
@@ -215,8 +223,6 @@ for(var j = 1; j < patterns_count; j++) {
   }
 }
 shuffle(patterns); // Fixed order because of fixed seed.
-
-globalState.currentPatternId = 0;
 
 var timeouts = [1.5, 1.65, 1.8, 1.95]
 var randomTimeoutBeforeDisplay = function () {
