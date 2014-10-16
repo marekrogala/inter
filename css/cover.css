@@ -177,3 +177,7 @@ body {
 #msg_outro {
   display: none;
 }
+
+#msg_intro {
+  display: none;
+}

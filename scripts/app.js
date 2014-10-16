@@ -338,4 +338,12 @@ $(function() {
       });
     }
   );
+
+  console.log(globalState);
+
+  if(globalState.currentPatternId > 0) {
+    $("#msg_outro").show();
+  } else {
+    $("#msg_intro").show();
+  }
 });
